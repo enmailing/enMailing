@@ -196,6 +196,61 @@
                     android:imeOptions="actionNext"
                     android:singleLine="true"
                     android:textAppearance="?android:attr/textAppearanceMedium" />
+                
+                <!-- enMailing layout -->
+                <LinearLayout
+                    android:id="@+id/layout_enmailing"
+                    android:orientation="vertical"
+                    android:layout_width="fill_parent"
+                    android:layout_height="wrap_content"
+                    android:visibility="gone"
+                    android:paddingLeft="6dip"
+                    android:paddingRight="6dip">
+
+                    <LinearLayout
+                        android:orientation="horizontal"
+                        android:layout_gravity="center_vertical"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1">
+                        
+                        <CheckBox
+						    android:id="@+id/enmailing_auto_encrypt"
+						    android:text="@string/enmailing_auto_encrypt"
+						    android:layout_width="wrap_content"
+	                        android:layout_height="wrap_content"/>
+
+                        <Button
+							android:id="@+id/enmailing_encrypt"
+							android:text="@string/btn_encrypt"
+							android:layout_width="wrap_content"
+                            android:layout_height="wrap_content" />
+						<Button
+							android:id="@+id/enmailing_decrypt"
+							android:text="@string/btn_decrypt"
+							android:layout_width="wrap_content"
+                            android:layout_height="wrap_content" />
+					</LinearLayout>
+						
+					<LinearLayout
+                        android:orientation="horizontal"
+                        android:layout_gravity="center_vertical"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1">
+						<Spinner
+						    android:id="@+id/enmailing_groups"
+						    android:layout_width="fill_parent"
+                            android:layout_height="wrap_content" />
+						<Button
+							android:id="@+id/enmailing_refresh_groups"
+							android:text="@string/enmailing_refresh_groups"
+							android:layout_width="wrap_content"
+                            android:layout_height="wrap_content" />
+
+                    </LinearLayout>
+
+                </LinearLayout>
 
                 <!--
                     Empty container for storing attachments. We'll stick
@@ -267,7 +322,7 @@
                     android:inputType="textMultiLine|textAutoCorrect|textCapSentences"
                     android:textAppearance="?android:attr/textAppearanceMedium" />
 
-                <com.fsck.k9.view.MessageWebView
+                <com.enmailing.k9.view.MessageWebView
                     android:id="@+id/quoted_html"
                     android:layout_height="wrap_content"
                     android:layout_width="fill_parent" />

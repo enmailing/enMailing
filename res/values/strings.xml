@@ -3,33 +3,33 @@
      When removing strings from the main file, please cleanup the translations.
      The script tools/sync_translation.py will get rid of any surplus strings.
 -->
-<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2" >
     <!-- === App-specific strings ============================================================= -->
 
     <!-- This should make it easier for forks to change the branding -->
 
     <!-- Used in AndroidManifest.xml -->
-    <string name="app_name">K-9 Mail</string>
-    <string name="beta_app_name">K-9 Mail BETA</string>
+    <string name="app_name">enMailing</string>
+    <string name="beta_app_name">enMailing BETA</string>
 
-    <string name="shortcuts_title">K-9 Accounts</string>
-    <string name="unread_widget_label">K-9 Unread</string>
+    <string name="shortcuts_title">Email Accounts</string>
+    <string name="unread_widget_label">enMailing Unread</string>
 
-    <string name="remote_control_label">K-9 Mail remote control</string>
-    <string name="remote_control_desc">Allows this application to control K-9 Mail activities and settings.</string>
+    <string name="remote_control_label">enMailing remote control</string>
+    <string name="remote_control_desc">Allows this application to control enMailing activities and settings.</string>
 
 
     <!-- Used in the about dialog -->
-    <string name="app_authors">Google, The K-9 Dog Walkers.</string>
-    <string name="app_copyright_fmt">Copyright 2008-<xliff:g>%s</xliff:g> The K-9 Dog Walkers. Portions Copyright 2006-<xliff:g>%s</xliff:g> the Android Open Source Project.</string>
+    <string name="app_authors">enMailing LLC</string>
+    <string name="app_copyright_fmt">Copyright 2013-<xliff:g>%s</xliff:g> enMailing LLC. Portions Copyright 2008-<xliff:g>%s</xliff:g> The K-9 Dog Walkers and 2006-<xliff:g>%s</xliff:g> the Android Open Source Project.</string>
     <string name="app_license">Licensed under the Apache License, Version 2.0.</string>
 
 
     <!-- Welcome message -->
-    <string name="welcome_message_title">Welcome to K-9 Mail</string>
+    <string name="welcome_message_title">Welcome to enMailing</string>
     <string name="accounts_welcome"><![CDATA[
 <p>
-K-9 Mail is a powerful free email client for Android.
+enMailing is based on K-9 Mail, a powerful open source email client for Android.
 </p><p>
 Its improved features include:
 </p>
@@ -50,24 +50,24 @@ Its improved features include:
   <li>…and more</li>
 </ul>
 <p>
-Please note that K-9 does not support most free Hotmail accounts and, like many mail clients, has
+Please note that enMailing does not support most free Hotmail accounts and, like many mail clients, has
 some quirks when talking to Microsoft Exchange.
 </p><p>
 Please submit bug reports, contribute new features and ask questions at
-<a href="http://k9mail.googlecode.com/">http://k9mail.googlecode.com/</a>.
+<a href="https://enmailing.com/">https://enmailing.com/</a>.
 </p>
     ]]></string>
 
 
     <!-- Default signature -->
-    <string name="default_signature">-- \nSent from my Android device with K-9 Mail. Please excuse my brevity.</string>
+    <string name="default_signature">-- \nSent from my Android device. Please excuse my brevity.</string>
 
 
     <!-- General strings that include the app name -->
-    <string name="account_delete_dlg_instructions_fmt">The account \"<xliff:g id="account">%s</xliff:g>\" will be removed from K-9 Mail.</string>
+    <string name="account_delete_dlg_instructions_fmt">The account \"<xliff:g id="account">%s</xliff:g>\" will be removed from enMailing.</string>
     <string name="account_recreate_dlg_instructions_fmt">All local data for \"<xliff:g id="account">%s</xliff:g>\" will be removed. Account settings will be retained.</string>
     <string name="account_clear_dlg_instructions_fmt">Local copies of messages in \"<xliff:g id="account">%s</xliff:g>\" will be removed. Account settings will be retained.</string>
-    <string name="insufficient_apg_permissions">K-9 doesn\'t have permission to access APG fully, please reinstall K-9 to fix that.</string>
+    <string name="insufficient_apg_permissions">enMailing doesn\'t have permission to access APG fully, please reinstall enMailing to fix that.</string>
 
 
 
@@ -1147,4 +1147,25 @@ Please submit bug reports, contribute new features and ask questions at
     <string name="preposition_for_date">on <xliff:g id="date">%s</xliff:g></string>
 
     <string name="mark_all_as_read">Mark all as read</string>
+    
+    <string name="enmailing_preferences">enMailing</string>
+    <string name="enmailing_notify_only_title">Notify only on enMailing messages</string>
+    <string name="enmailing_notify_only_summary">Only show notifications when email messages contain enMailing encryptions.</string>
+    <string name="enmailing_refresh_groups">Refresh groups</string>
+    <string-array name="enmailing_group_default">
+        <item>Everyone</item>
+    </string-array>
+    <string name="enmailing_auto_encrypt">Encrypt on send</string>
+    <string name="account_setup_enmailing_title">enMailing Account</string>
+    <string name="account_setup_enmailing_username_label">Your enMailing username</string>
+    <string name="account_setup_enmailing_password_label">Your enMailing password</string>
+    <string name="account_setup_enmailing_device_desc_label">Device Name</string>
+    <string name="account_setup_enmailing_device_desc_default">Android Device</string>
+    <string name="account_setup_enmailing_device_desc_desc">Enter a name for this device:</string>
+    <string name="account_setup_enmailing_full_access_desc">Authorize this device to manage your contacts and groups, in addition to encrypting and decrypting messages:</string>
+    <string name="account_setup_enmailing_full_access_label">Full Access</string>
+    <string name="account_setup_enmailing_authstatus_default">You must authenticate this device</string>
+    <string name="enmailing_authorize">Authorize</string>
+    <string name="enmailing_deauthorize">De-Authorize</string>
+    <string name="enmailing_settings_action">enMailing Settings</string>
 </resources>

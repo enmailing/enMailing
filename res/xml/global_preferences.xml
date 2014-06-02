@@ -243,7 +243,7 @@
             android:title="@string/gestures_title"
             android:summary="@string/gestures_summary" />
 
-        <com.fsck.k9.preferences.CheckBoxListPreference
+        <com.enmailing.k9.preferences.CheckBoxListPreference
             android:persistent="false"
             android:key="volumeNavigation"
             android:title="@string/volume_navigation_title"
@@ -263,7 +263,7 @@
             android:title="@string/global_settings_messageview_show_next_label"
             android:summary="@string/global_settings_messageview_show_next_summary" />
 
-        <com.fsck.k9.preferences.CheckBoxListPreference
+        <com.enmailing.k9.preferences.CheckBoxListPreference
             android:persistent="false"
             android:key="confirm_actions"
             android:title="@string/global_settings_confirm_actions_title"
@@ -284,14 +284,14 @@
             android:title="@string/quiet_time"
             android:summary="@string/quiet_time_description"
             />
-        <com.fsck.k9.preferences.TimePickerPreference
+        <com.enmailing.k9.preferences.TimePickerPreference
             android:key="quiet_time_starts"
             android:persistent="false"
             android:dependency="quiet_time_enabled"
             android:dialogTitle="@string/quiet_time_starts"
             android:title="@string/quiet_time_starts"
             />
-        <com.fsck.k9.preferences.TimePickerPreference
+        <com.enmailing.k9.preferences.TimePickerPreference
             android:key="quiet_time_ends"
             android:dependency="quiet_time_enabled"
             android:persistent="false"
@@ -354,6 +354,32 @@
             android:title="@string/global_settings_notification_hide_subject_title"/>
 
     </PreferenceScreen>
+    
+    <!--PreferenceScreen
+        android:title="@string/enmailing_preferences"
+        android:key="enmailing_preferences">
+        <EditTextPreference
+            android:persistent="false"
+            android:key="enmailing_username"
+            android:singleLine="true"
+            android:title="@string/account_setup_incoming_username_label"
+            android:summary="Your enMailing username"
+            android:dialogTitle="@string/account_setup_incoming_username_label" />
+        <EditTextPreference
+            android:persistent="false"
+            android:key="enmailing_password"
+            android:singleLine="true"
+            android:title="@string/account_setup_incoming_password_label"
+            android:summary="Your enMailing password"
+            android:dialogTitle="@string/account_setup_incoming_password_label"
+            android:inputType="textPassword" >
+        <CheckBoxPreference
+            android:persistent="false"
+            android:key="enmailing_notify_only"
+            android:title="@string/enmailing_notify_only_title"
+            android:summary="@string/enmailing_notify_only_summary" />
+
+    </PreferenceScreen-->
 
     <PreferenceScreen
         android:title="@string/debug_preferences"

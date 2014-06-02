@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest
     xmlns:android="http://schemas.android.com/apk/res/android"
-    android:versionCode="18008"
-    android:versionName="4.508" package="com.fsck.k9"
+    android:versionCode="1000"
+    android:versionName="1.0" package="com.enmailing.k9"
     >
     <uses-sdk
-       android:minSdkVersion="8"
-       android:targetSdkVersion="17"
+       android:minSdkVersion="11"
+       android:targetSdkVersion="18"
     />
     <supports-screens
         android:largeScreens="true"
@@ -29,30 +29,30 @@
 
     <uses-permission android:name="org.thialfihar.android.apg.permission.READ_KEY_DETAILS" />
 
-    <permission android:name="com.fsck.k9.permission.READ_ATTACHMENT"
+    <permission android:name="com.enmailing.k9.permission.READ_ATTACHMENT"
                 android:permissionGroup="android.permission-group.MESSAGES"
                 android:protectionLevel="dangerous"
                 android:label="@string/read_attachment_label"
                 android:description="@string/read_attachment_desc"/>
-    <uses-permission android:name="com.fsck.k9.permission.READ_ATTACHMENT"/>
-    <permission android:name="com.fsck.k9.permission.REMOTE_CONTROL"
+    <uses-permission android:name="com.enmailing.k9.permission.READ_ATTACHMENT"/>
+    <permission android:name="com.enmailing.k9.permission.REMOTE_CONTROL"
                  android:permissionGroup="android.permission-group.MESSAGES"
                  android:protectionLevel="dangerous"
                  android:label="@string/remote_control_label"
                  android:description="@string/remote_control_desc"/>
-    <uses-permission android:name="com.fsck.k9.permission.REMOTE_CONTROL"/>
-    <permission android:name="com.fsck.k9.permission.READ_MESSAGES"
+    <uses-permission android:name="com.enmailing.k9.permission.REMOTE_CONTROL"/>
+    <permission android:name="com.enmailing.k9.permission.READ_MESSAGES"
                 android:permissionGroup="android.permission-group.MESSAGES"
                 android:protectionLevel="dangerous"
                 android:label="@string/read_messages_label"
                 android:description="@string/read_messages_desc"/>
-    <uses-permission android:name="com.fsck.k9.permission.READ_MESSAGES"/>
-    <permission android:name="com.fsck.k9.permission.DELETE_MESSAGES"
+    <uses-permission android:name="com.enmailing.k9.permission.READ_MESSAGES"/>
+    <permission android:name="com.enmailing.k9.permission.DELETE_MESSAGES"
                 android:permissionGroup="android.permission-group.MESSAGES"
                 android:protectionLevel="dangerous"
                 android:label="@string/delete_messages_label"
                 android:description="@string/delete_messages_desc"/>
-    <uses-permission android:name="com.fsck.k9.permission.DELETE_MESSAGES"/>
+    <uses-permission android:name="com.enmailing.k9.permission.DELETE_MESSAGES"/>
     <uses-feature android:name="android.hardware.touchscreen" android:required="false"/>
     <application
         android:icon="@drawable/icon"
@@ -87,7 +87,7 @@
             android:name=".activity.setup.Prefs"
             android:label="@string/prefs_title"
             android:configChanges="locale"
-            android:taskAffinity="com.fsck.k9.activity.setup.Prefs"
+            android:taskAffinity="com.enmailing.k9.activity.setup.Prefs"
             android:excludeFromRecents="true"
             >
         </activity>
@@ -142,6 +142,18 @@
         <activity
             android:name=".activity.setup.AccountSetupNames"
             android:label="@string/account_setup_names_title"
+            android:configChanges="locale"
+            >
+        </activity>
+        <activity
+            android:name=".activity.setup.AccountSetupEnMailing"
+            android:label="@string/account_setup_enmailing_title"
+            android:configChanges="locale"
+            >
+        </activity>
+        <activity
+            android:name=".activity.EnMailingPrefs"
+            android:label="@string/enmailing_settings_action"
             android:configChanges="locale"
             >
         </activity>
@@ -312,19 +324,19 @@
                 <action android:name="com.android.sync.SYNC_CONN_STATUS_CHANGED" />
             </intent-filter>
               <intent-filter>
-                <action android:name="com.fsck.k9.service.BroadcastReceiver.scheduleIntent"/>
+                <action android:name="com.enmailing.k9.service.BroadcastReceiver.scheduleIntent"/>
             </intent-filter>
         </receiver>
         <receiver android:name=".service.RemoteControlReceiver"
                android:enabled="true"
-               android:permission="com.fsck.k9.permission.REMOTE_CONTROL"
+               android:permission="com.enmailing.k9.permission.REMOTE_CONTROL"
                >
                <intent-filter>
-                 <action android:name="com.fsck.k9.K9RemoteControl.set"/>
+                 <action android:name="com.enmailing.k9.K9RemoteControl.set"/>
 
              </intent-filter>
              <intent-filter>
-                <action android:name="com.fsck.k9.K9RemoteControl.requestAccounts"/>
+                <action android:name="com.enmailing.k9.K9RemoteControl.requestAccounts"/>
 
              </intent-filter>
          </receiver>
@@ -332,7 +344,7 @@
               android:enabled="true"
               >
               <intent-filter>
-                <action android:name="com.fsck.k9.service.CoreReceiver.wakeLockRelease"/>
+                <action android:name="com.enmailing.k9.service.CoreReceiver.wakeLockRelease"/>
             </intent-filter>
         </receiver>
         <receiver android:name=".service.StorageReceiver"
@@ -381,7 +393,7 @@ otherwise it would make K-9 start at the wrong time
          <service
               android:name=".service.RemoteControlService"
               android:enabled="true"
-              android:permission="com.fsck.k9.permission.REMOTE_CONTROL"
+              android:permission="com.enmailing.k9.permission.REMOTE_CONTROL"
              >
           </service>
          <service
@@ -391,24 +403,24 @@ otherwise it would make K-9 start at the wrong time
          </service>
         <provider
             android:name=".provider.AttachmentProvider"
-            android:authorities="com.fsck.k9.attachmentprovider"
+            android:authorities="com.enmailing.k9.attachmentprovider"
             android:multiprocess="true"
             android:grantUriPermissions="true"
-            android:readPermission="com.fsck.k9.permission.READ_ATTACHMENT"
+            android:readPermission="com.enmailing.k9.permission.READ_ATTACHMENT"
             android:exported="true"
             />
         <provider
             android:name=".provider.MessageProvider"
-            android:authorities="com.fsck.k9.messageprovider"
+            android:authorities="com.enmailing.k9.messageprovider"
             android:multiprocess="true"
             android:grantUriPermissions="true"
-            android:readPermission="com.fsck.k9.permission.READ_MESSAGES"
-            android:writePermission="com.fsck.k9.permission.DELETE_MESSAGES"
+            android:readPermission="com.enmailing.k9.permission.READ_MESSAGES"
+            android:writePermission="com.enmailing.k9.permission.DELETE_MESSAGES"
             android:exported="true"
             />
         <provider
             android:name=".provider.EmailProvider"
-            android:authorities="com.fsck.k9.provider.email"
+            android:authorities="com.enmailing.k9.provider.email"
             android:exported="false"
             />
 

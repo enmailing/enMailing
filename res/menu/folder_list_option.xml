@@ -70,6 +70,9 @@
             <item
                 android:id="@+id/app_settings"
                 android:title="@string/global_settings_action"/>
+            <item
+                android:id="@+id/enmailing_settings"
+                android:title="@string/enmailing_settings_action"/>
         </menu>
     </item>
 
