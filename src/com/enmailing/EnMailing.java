@@ -1,6 +1,5 @@
 package com.enmailing;
 
-import java.util.concurrent.Callable;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 
@@ -11,23 +10,18 @@ import java.util.Hashtable;
 import java.util.Set;
 
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 
-import java.security.*;
 import javax.crypto.*;
 import javax.crypto.spec.*;
 import android.text.SpannableStringBuilder;
-//import java.io.*;
 import android.util.Base64;
 
-import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
 import org.apache.http.StatusLine;
-import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpPost;
@@ -40,36 +34,37 @@ import org.json.JSONObject;
 import com.enmailing.k9.K9;
 import com.enmailing.k9.Preferences;
 import com.enmailing.k9.activity.MessageCompose;
-import com.enmailing.k9.helper.HtmlConverter;
-import com.enmailing.k9.view.MessageWebView;
-import com.enmailing.k9.R;
+import com.enmailing.k9.mail.internet.TextBody;
+import com.enmailing.k9.mail.internet.MimeMessage;
 
 import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
-import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
-import android.os.Message;
 import android.util.Log;
 import android.view.View;
-import android.webkit.WebView;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.Toast;
-import android.preference.PreferenceManager;
-import android.net.Uri;
 
 public class EnMailing extends Activity {
 	public static final String LOG_TAG = "enmailing";
+	public static final Context globalContext = K9.app.getApplicationContext();
+	//public static Hashtable<TextBody, Boolean> textBodies = new Hashtable<TextBody, Boolean>();;
+	public static ArrayList<TextBody> textBodies = new ArrayList<TextBody>();
+	public static ArrayList<MimeMessage> mimeMessages = new ArrayList<MimeMessage>();
 	private Context context;
+	private boolean lastEncryptSuccess;
 	//private String messageEnc;
 	
+	public EnMailing() {
+		lastEncryptSuccess = false;
+	}
+	
 	public EnMailing(Context c) {
+		this();
 		context = c;
-		//messageEnc = null;
 	}
 	
 	public EnMailing(View v) {
@@ -77,26 +72,41 @@ public class EnMailing extends Activity {
 	}
 	
 	public static boolean hasEncryptions(String text) {
+		//Log.e(EnMailing.LOG_TAG, "Checking encryptions: "+text);
 		//Pattern p = Pattern.compile("-----enMAILING-----(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?-----enMAILING-----(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?-----END-----");
-		Pattern p = Pattern.compile("-----enMAILING-----(?:[A-Za-z0-9+/=\r\n])*-----enMAILING-----(?:[A-Za-z0-9+/=\r\n])*-----END-----");
+		Pattern p = Pattern.compile("-----enMAILING-----(?:[A-Za-z0-9+/=\r\n>]|<br \\/>)*-----enMAILING-----(?:[A-Za-z0-9+/=\r\n>]|<br \\/>)*-----END-----");
 		Matcher m = p.matcher(text);
 		boolean found = false;
 		if (m.find()) {
 			found = true;
 		}
+		//Log.e(EnMailing.LOG_TAG, "Encryptions not found.");
 		return found;
 	}
 	
 	public static ArrayList<String> getEncryptions(String text) {
 		ArrayList<String> encryptions = new ArrayList<String>();
 		//Pattern p = Pattern.compile("-----enMAILING-----(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?-----enMAILING-----(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?-----END-----");
-		Pattern p = Pattern.compile("-----enMAILING-----(?:[A-Za-z0-9+/=\r\n])*-----enMAILING-----(?:[A-Za-z0-9+/=\r\n])*-----END-----");
+		Pattern p = Pattern.compile("-----enMAILING-----(?:[A-Za-z0-9+/=\r\n>]|<br \\/>)*-----enMAILING-----(?:[A-Za-z0-9+/=\r\n>]|<br \\/>)*-----END-----");
 		Matcher m = p.matcher(text);
 		while (m.find()) {
 			encryptions.add(m.group());
 		}
 		
 		return encryptions;
+	}
+	
+	public static String getLoadingMessage(String text) {
+		ArrayList<String> encryptions = EnMailing.getEncryptions(text);
+		for (int i=0; i < encryptions.size(); i++) {
+			String enc = encryptions.get(i);
+			text = text.replace(enc, "[Decrypting enMailing message...]");
+		}
+		return text;
+	}
+	
+	public static String getEncryptionPlaceholder(int i) {
+		return "-----enMAILING-----[placeholder"+i+"]-----END-----";
 	}
 	
 	private static Cipher getCipher(String strKey, String strIv, int cipherMode) {
@@ -138,14 +148,16 @@ public class EnMailing extends Activity {
 	}
 	
 	private String decryptBlock(String block) {
-		String dec = block.replaceAll("[\r\n]", "");
+		block = block.replaceAll("[\r\n>]", "").replaceAll("<br \\/>", "");
+		//String dec = block.replaceAll("[\r\n]", "").replaceAll("<br \\/>", "");
+		String dec = block;
 		String headerBumper = EnMailing.headerBumper();
 		String hdr = block.substring(0, block.lastIndexOf(headerBumper)+headerBumper.length());
 		//Log.e(EnMailing.LOG_TAG, "Header: "+hdr);
 		String body = block.replace(hdr, "");
 		body = body.replace(EnMailing.messageBumper(), "");
 		hdr = hdr.replaceAll(EnMailing.headerBumper(), "");
-		hdr = hdr.replaceAll("[\r\n]", "");
+		//hdr = hdr.replaceAll("[\r\n]", "");
 		
 		Hashtable<String,String> params = new Hashtable<String,String>();
 		params.put("request", "decode");
@@ -201,16 +213,16 @@ public class EnMailing extends Activity {
 	//For decrypting received messages
 	//public void decryptMessage(final android.webkit.WebView view, final String text) {
 	public void decryptMessage(final com.enmailing.k9.view.MessageWebView view, final String text) {
-		//String username = K9.getEnMailingUsername();
-		//String authkey = K9.getEnMailingAuthKey();
 		String username = getUsername();
 		String authkey = getAuthKey();
 		
 		if (username.length() < 1 || authkey.length() < 1) {
 			Log.e(EnMailing.LOG_TAG, "Device not authenticated");
 			this.showToast("You must authenticate this device to decrypt this message.");
+			view.setText(text);
 			return;
 		}
+		view.setText(EnMailing.getLoadingMessage(text));
 		new Thread() {
 			public void run() {
 				final String decrypted = EnMailing.this.decryptString(text);				
@@ -299,8 +311,6 @@ public class EnMailing extends Activity {
 	
 	//For decrypting edit text boxes
 	public void decryptEditText(final android.widget.EditText edit) {
-		//String username = K9.getEnMailingUsername();
-		//String authkey = K9.getEnMailingAuthKey();
 		String username = getUsername();
 		String authkey = getAuthKey();
 		
@@ -355,6 +365,7 @@ public class EnMailing extends Activity {
 		if (username.length() < 1 || authkey.length() < 1) {
 			Log.e(EnMailing.LOG_TAG, "Device not authenticated");
 			this.showToast("You must authenticate this device to decrypt this message.");
+			lastEncryptSuccess = false;
 			return text;
 		}
 		
@@ -370,6 +381,7 @@ public class EnMailing extends Activity {
 				String key = result.getString("key");
 				String iv = result.getString("iv");
 				String enc = result.getString("header")+EnMailing.this.encrypt(text, key, iv)+EnMailing.messageBumper();
+				lastEncryptSuccess = true;
 				text = enc;
 			} else {
 				String message = result.getString("message");
@@ -380,6 +392,7 @@ public class EnMailing extends Activity {
 					Log.e(EnMailing.LOG_TAG, "Encryption failed: "+result.getString("longmessage"));
 					EnMailing.this.showToast("Encryption failed: "+result.getString("longmessage"));
 				}
+				lastEncryptSuccess = false;
 			}
 		} catch (Exception e) {
 			Log.e(EnMailing.LOG_TAG, "Error encrypting: "+e.getMessage());
@@ -433,8 +446,8 @@ public class EnMailing extends Activity {
 		                	groupSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
 		                    	@Override
 		                    	public void onItemSelected(AdapterView<?> parentView, View selectedItemView, int position, long id) {
-		                            EnMailing enMailing = new EnMailing(groupSpinner);
-		                            enMailing.setGroup(groupSpinner.getItemAtPosition(position).toString());
+		                            //EnMailing enMailing = new EnMailing(groupSpinner);
+		                            EnMailing.setGroup(groupSpinner.getItemAtPosition(position).toString());
 		                        }
 		                    	
 		                    	@Override
@@ -812,5 +825,41 @@ public class EnMailing extends Activity {
 	
 	public static String getApiPath() {
 		return "https://api.enmailing.com/api.php";
+	}
+	
+	public static void addTextBodyFail(TextBody textbody) {
+		//textBodies.put(textbody, Boolean.valueOf(success));
+		textBodies.add(textbody);
+	}
+	
+	public static void removeTextBodyFail(TextBody textbody) {
+		textBodies.remove(textbody);
+	}
+	
+	public static boolean textBodyFailed(TextBody textbody) {
+		if (textBodies.contains(textbody)) {
+			return true;
+		}
+		return false;
+	}
+	
+	public static void textBodyToMessageFail(TextBody textbody, MimeMessage mimemessage) {
+		textBodies.remove(textbody);
+		mimeMessages.add(mimemessage);
+	}
+	
+	public static boolean mimeMessageFailed(MimeMessage mimemessage) {
+		if (mimeMessages.contains(mimemessage)) {
+			return true;
+		}
+		return false;
+	}
+	
+	public static void removeMimeMessageFail(MimeMessage message) {
+		mimeMessages.remove(message);
+	}
+	
+	public boolean lastEncryptSuccess() {
+		return lastEncryptSuccess;
 	}
 }

@@ -28,10 +28,11 @@ import com.actionbarsherlock.app.ActionBar;
 import com.actionbarsherlock.view.Menu;
 import com.actionbarsherlock.view.MenuItem;
 import com.enmailing.k9.Account;
-import com.enmailing.k9.K9;
-import com.enmailing.k9.Preferences;
 import com.enmailing.k9.Account.SortType;
+import com.enmailing.k9.K9;
 import com.enmailing.k9.K9.SplitViewMode;
+import com.enmailing.k9.Preferences;
+import com.enmailing.k9.R;
 import com.enmailing.k9.activity.misc.SwipeGestureDetector.OnSwipeGestureListener;
 import com.enmailing.k9.activity.setup.AccountSettings;
 import com.enmailing.k9.activity.setup.FolderSettings;
@@ -47,13 +48,13 @@ import com.enmailing.k9.search.LocalSearch;
 import com.enmailing.k9.search.SearchAccount;
 import com.enmailing.k9.search.SearchSpecification;
 import com.enmailing.k9.search.SearchSpecification.Attribute;
-import com.enmailing.k9.search.SearchSpecification.SearchCondition;
 import com.enmailing.k9.search.SearchSpecification.Searchfield;
+import com.enmailing.k9.search.SearchSpecification.SearchCondition;
 import com.enmailing.k9.view.MessageHeader;
+import com.enmailing.k9.view.MessageOpenPgpView;
 import com.enmailing.k9.view.MessageTitleView;
 import com.enmailing.k9.view.ViewSwitcher;
 import com.enmailing.k9.view.ViewSwitcher.OnSwitchCompleteListener;
-import com.enmailing.k9.R;
 
 import de.cketti.library.changelog.ChangeLog;
 
@@ -163,6 +164,7 @@ public class MessageList extends K9FragmentActivity implements MessageListFragme
     private LocalSearch mSearch;
     private boolean mSingleFolderMode;
     private boolean mSingleAccountMode;
+
     private ProgressBar mActionBarProgress;
     private MenuItem mMenuButtonCheckMail;
     private View mActionButtonIndeterminateProgress;
@@ -872,19 +874,23 @@ public class MessageList extends K9FragmentActivity implements MessageListFragme
                 mMessageViewFragment.onToggleRead();
                 return true;
             }
-            case R.id.archive: {
+            case R.id.archive:
+            case R.id.refile_archive: {
                 mMessageViewFragment.onArchive();
                 return true;
             }
-            case R.id.spam: {
+            case R.id.spam:
+            case R.id.refile_spam: {
                 mMessageViewFragment.onSpam();
                 return true;
             }
-            case R.id.move: {
+            case R.id.move:
+            case R.id.refile_move: {
                 mMessageViewFragment.onMove();
                 return true;
             }
-            case R.id.copy: {
+            case R.id.copy:
+            case R.id.refile_copy: {
                 mMessageViewFragment.onCopy();
                 return true;
             }
@@ -978,8 +984,13 @@ public class MessageList extends K9FragmentActivity implements MessageListFragme
                 || !mMessageViewFragment.isInitialized()) {
             menu.findItem(R.id.next_message).setVisible(false);
             menu.findItem(R.id.previous_message).setVisible(false);
-            menu.findItem(R.id.delete).setVisible(false);
             menu.findItem(R.id.single_message_options).setVisible(false);
+            menu.findItem(R.id.delete).setVisible(false);
+            menu.findItem(R.id.compose).setVisible(false);
+            menu.findItem(R.id.archive).setVisible(false);
+            menu.findItem(R.id.move).setVisible(false);
+            menu.findItem(R.id.copy).setVisible(false);
+            menu.findItem(R.id.spam).setVisible(false);
             menu.findItem(R.id.refile).setVisible(false);
             menu.findItem(R.id.toggle_unread).setVisible(false);
             menu.findItem(R.id.select_text).setVisible(false);
@@ -1027,19 +1038,41 @@ public class MessageList extends K9FragmentActivity implements MessageListFragme
                 menu.findItem(R.id.toggle_unread).setTitle(R.string.mark_as_read_action);
             }
 
-            menu.findItem(R.id.copy).setVisible(mMessageViewFragment.isCopyCapable());
-
             // Jellybean has built-in long press selection support
             menu.findItem(R.id.select_text).setVisible(Build.VERSION.SDK_INT < 16);
 
+            menu.findItem(R.id.delete).setVisible(K9.isMessageViewDeleteActionVisible());
+
+            /*
+             * Set visibility of copy, move, archive, spam in action bar and refile submenu
+             */
+            if (mMessageViewFragment.isCopyCapable()) {
+                menu.findItem(R.id.copy).setVisible(K9.isMessageViewCopyActionVisible());
+                menu.findItem(R.id.refile_copy).setVisible(true);
+            } else {
+                menu.findItem(R.id.copy).setVisible(false);
+                menu.findItem(R.id.refile_copy).setVisible(false);
+            }
+
             if (mMessageViewFragment.isMoveCapable()) {
-                menu.findItem(R.id.move).setVisible(true);
-                menu.findItem(R.id.archive).setVisible(mMessageViewFragment.canMessageBeArchived());
-                menu.findItem(R.id.spam).setVisible(mMessageViewFragment.canMessageBeMovedToSpam());
+                boolean canMessageBeArchived = mMessageViewFragment.canMessageBeArchived();
+                boolean canMessageBeMovedToSpam = mMessageViewFragment.canMessageBeMovedToSpam();
+
+                menu.findItem(R.id.move).setVisible(K9.isMessageViewMoveActionVisible());
+                menu.findItem(R.id.archive).setVisible(canMessageBeArchived &&
+                        K9.isMessageViewArchiveActionVisible());
+                menu.findItem(R.id.spam).setVisible(canMessageBeMovedToSpam &&
+                        K9.isMessageViewSpamActionVisible());
+
+                menu.findItem(R.id.refile_move).setVisible(true);
+                menu.findItem(R.id.refile_archive).setVisible(canMessageBeArchived);
+                menu.findItem(R.id.refile_spam).setVisible(canMessageBeMovedToSpam);
             } else {
                 menu.findItem(R.id.move).setVisible(false);
                 menu.findItem(R.id.archive).setVisible(false);
                 menu.findItem(R.id.spam).setVisible(false);
+
+                menu.findItem(R.id.refile).setVisible(false);
             }
 
             if (mMessageViewFragment.allHeadersVisible()) {
@@ -1047,7 +1080,6 @@ public class MessageList extends K9FragmentActivity implements MessageListFragme
             } else {
                 menu.findItem(R.id.hide_headers).setVisible(false);
             }
-
         }
 
 
@@ -1071,6 +1103,7 @@ public class MessageList extends K9FragmentActivity implements MessageListFragme
         } else {
             menu.findItem(R.id.set_sort).setVisible(true);
             menu.findItem(R.id.select_all).setVisible(true);
+            menu.findItem(R.id.compose).setVisible(true);
             menu.findItem(R.id.mark_all_as_read).setVisible(
                     mMessageListFragment.isMarkAllAsReadSupported());
 
@@ -1546,4 +1579,18 @@ public class MessageList extends K9FragmentActivity implements MessageListFragme
             removeMessageViewFragment();
         }
     }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        // handle OpenPGP results from PendingIntents in OpenPGP view
+        // must be handled in this main activity, because startIntentSenderForResult() does not support Fragments
+        MessageOpenPgpView openPgpView = (MessageOpenPgpView) findViewById(R.id.layout_decrypt_openpgp);
+        if (openPgpView != null && openPgpView.handleOnActivityResult(requestCode, resultCode, data)) {
+            return;
+        }
+    }
+    
+    
 }

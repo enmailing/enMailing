@@ -1,6 +1,7 @@
 package com.enmailing.k9.view;
 
 import android.app.Activity;
+import android.content.ActivityNotFoundException;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
@@ -87,6 +88,7 @@ public class SingleMessageView extends LinearLayout implements OnClickListener,
 
     private boolean mScreenReaderEnabled;
     private MessageCryptoView mCryptoView;
+    private MessageOpenPgpView mOpenPgpView;
     private MessageWebView mMessageContentView;
     private AccessibleWebView mAccessibleMessageContentView;
     private MessageHeader mHeaderContainer;
@@ -102,10 +104,7 @@ public class SingleMessageView extends LinearLayout implements OnClickListener,
     private LayoutInflater mInflater;
     private Contacts mContacts;
     private AttachmentView.AttachmentFileDownloadCallback attachmentCallback;
-    private LinearLayout mHeaderPlaceHolder;
-    private LinearLayout mTitleBarHeaderContainer;
     private View mAttachmentsContainer;
-    private LinearLayout mInsideAttachmentsContainer;
     private SavedState mSavedState;
     private ClipboardManager mClipboardManager;
     private String mText;
@@ -119,13 +118,10 @@ public class SingleMessageView extends LinearLayout implements OnClickListener,
         activity.registerForContextMenu(mMessageContentView);
         mMessageContentView.setOnCreateContextMenuListener(this);
 
-        mHeaderPlaceHolder = (LinearLayout) findViewById(R.id.message_view_header_container);
-
         mHeaderContainer = (MessageHeader) findViewById(R.id.header_container);
         mHeaderContainer.setOnLayoutChangedListener(this);
 
         mAttachmentsContainer = findViewById(R.id.attachments_container);
-        mInsideAttachmentsContainer = (LinearLayout) findViewById(R.id.inside_attachments_container);
         mAttachments = (LinearLayout) findViewById(R.id.attachments);
         mHiddenAttachments = (LinearLayout) findViewById(R.id.hidden_attachments);
         mHiddenAttachments.setVisibility(View.GONE);
@@ -134,6 +130,9 @@ public class SingleMessageView extends LinearLayout implements OnClickListener,
         mCryptoView = (MessageCryptoView) findViewById(R.id.layout_decrypt);
         mCryptoView.setFragment(fragment);
         mCryptoView.setupChildViews();
+        mOpenPgpView = (MessageOpenPgpView) findViewById(R.id.layout_decrypt_openpgp);
+        mOpenPgpView.setFragment(fragment);
+        mOpenPgpView.setupChildViews();
         mShowPicturesAction = findViewById(R.id.show_pictures);
         mShowMessageAction = findViewById(R.id.show_message);
 
@@ -158,7 +157,6 @@ public class SingleMessageView extends LinearLayout implements OnClickListener,
             mMessageContentView.setVisibility(View.VISIBLE);
             mScreenReaderEnabled = false;
 
-            mHeaderPlaceHolder.removeView(mHeaderContainer);
             // the HTC version of WebView tries to force the background of the
             // titlebar, which is really unfair.
             TypedValue outValue = new TypedValue();
@@ -166,10 +164,6 @@ public class SingleMessageView extends LinearLayout implements OnClickListener,
             mHeaderContainer.setBackgroundColor(outValue.data);
             // also set background of the whole view (including the attachments view)
             setBackgroundColor(outValue.data);
-
-            mTitleBarHeaderContainer = new LinearLayout(activity);
-            mMessageContentView.setEmbeddedTitleBarCompat(mTitleBarHeaderContainer);
-            mTitleBarHeaderContainer.addView(mHeaderContainer);
         }
 
         mShowHiddenAttachments.setOnClickListener(this);
@@ -203,14 +197,14 @@ public class SingleMessageView extends LinearLayout implements OnClickListener,
                         switch (item.getItemId()) {
                             case MENU_ITEM_LINK_VIEW: {
                                 Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
-                                getContext().startActivity(intent);
+                                startActivityIfAvailable(getContext(), intent);
                                 break;
                             }
                             case MENU_ITEM_LINK_SHARE: {
                                 Intent intent = new Intent(Intent.ACTION_SEND);
                                 intent.setType("text/plain");
                                 intent.putExtra(Intent.EXTRA_TEXT, url);
-                                getContext().startActivity(intent);
+                                startActivityIfAvailable(getContext(), intent);
                                 break;
                             }
                             case MENU_ITEM_LINK_COPY: {
@@ -255,7 +249,7 @@ public class SingleMessageView extends LinearLayout implements OnClickListener,
                                     // AttachmentProvider
                                     intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
                                 }
-                                getContext().startActivity(intent);
+                                startActivityIfAvailable(getContext(), intent);
                                 break;
                             }
                             case MENU_ITEM_IMAGE_SAVE: {
@@ -303,7 +297,7 @@ public class SingleMessageView extends LinearLayout implements OnClickListener,
                             case MENU_ITEM_PHONE_CALL: {
                                 Uri uri = Uri.parse(WebView.SCHEME_TEL + phoneNumber);
                                 Intent intent = new Intent(Intent.ACTION_VIEW, uri);
-                                getContext().startActivity(intent);
+                                startActivityIfAvailable(getContext(), intent);
                                 break;
                             }
                             case MENU_ITEM_PHONE_SAVE: {
@@ -348,7 +342,7 @@ public class SingleMessageView extends LinearLayout implements OnClickListener,
                             case MENU_ITEM_EMAIL_SEND: {
                                 Uri uri = Uri.parse(WebView.SCHEME_MAILTO + email);
                                 Intent intent = new Intent(Intent.ACTION_VIEW, uri);
-                                getContext().startActivity(intent);
+                                startActivityIfAvailable(getContext(), intent);
                                 break;
                             }
                             case MENU_ITEM_EMAIL_SAVE: {
@@ -384,6 +378,14 @@ public class SingleMessageView extends LinearLayout implements OnClickListener,
 
                 break;
             }
+        }
+    }
+
+    private void startActivityIfAvailable(Context context, Intent intent) {
+        try {
+            context.startActivity(intent);
+        } catch (ActivityNotFoundException e) {
+            Toast.makeText(context, R.string.error_activity_not_found, Toast.LENGTH_LONG).show();
         }
     }
 
@@ -548,7 +550,7 @@ public class SingleMessageView extends LinearLayout implements OnClickListener,
     public boolean additionalHeadersVisible() {
         return mHeaderContainer.additionalHeadersVisible();
     }
-
+    
     public void setMessage(Account account, LocalMessage message, PgpData pgpData,
             MessagingController controller, MessagingListener listener) throws MessagingException {
         resetView();
@@ -563,6 +565,7 @@ public class SingleMessageView extends LinearLayout implements OnClickListener,
 
         if (text == null) {
             text = message.getTextForDisplay();
+            //Log.e(EnMailing.LOG_TAG, "Get text for display: "+text);
         }
 
         // Save the text so we can reset the WebView when the user clicks the "Show pictures" button
@@ -619,6 +622,8 @@ public class SingleMessageView extends LinearLayout implements OnClickListener,
         if (text != null) {
             loadBodyFromText(text);
             updateCryptoLayout(account.getCryptoProvider(), pgpData, message);
+            mOpenPgpView.updateLayout(account, pgpData.getDecryptedData(),
+                    pgpData.getSignatureResult(), message);
         } else {
             showStatusMessage(getContext().getString(R.string.webview_empty_message));
         }
@@ -634,7 +639,7 @@ public class SingleMessageView extends LinearLayout implements OnClickListener,
         if (mScreenReaderEnabled) {
             mAccessibleMessageContentView.setText(emailText);
         } else {
-        	if (EnMailing.hasEncryptions(emailText)) {
+        	if (!emailText.isEmpty() && EnMailing.hasEncryptions(emailText)) {
             	EnMailing enM = new EnMailing(this.getContext());
     	    	enM.decryptMessage(mMessageContentView, emailText);
     	    	mMessageContentView.setEnMailingMessage(true);
@@ -654,12 +659,6 @@ public class SingleMessageView extends LinearLayout implements OnClickListener,
         boolean showHidden = (show && mHiddenAttachments.getVisibility() == View.GONE &&
                 mHiddenAttachments.getChildCount() > 0);
         mShowHiddenAttachments.setVisibility(showHidden ? View.VISIBLE : View.GONE);
-
-        if (show) {
-            moveHeaderToLayout();
-        } else {
-            moveHeaderToWebViewTitleBar();
-        }
     }
 
     public void showMessageWebView(boolean show) {
@@ -758,20 +757,6 @@ public class SingleMessageView extends LinearLayout implements OnClickListener,
     public void setAttachmentCallback(
         AttachmentView.AttachmentFileDownloadCallback attachmentCallback) {
         this.attachmentCallback = attachmentCallback;
-    }
-
-    private void moveHeaderToLayout() {
-        if (mTitleBarHeaderContainer != null && mTitleBarHeaderContainer.getChildCount() != 0) {
-            mTitleBarHeaderContainer.removeView(mHeaderContainer);
-            mInsideAttachmentsContainer.addView(mHeaderContainer, 0);
-        }
-    }
-
-    private void moveHeaderToWebViewTitleBar() {
-        if (mTitleBarHeaderContainer != null && mTitleBarHeaderContainer.getChildCount() == 0) {
-            mInsideAttachmentsContainer.removeView(mHeaderContainer);
-            mTitleBarHeaderContainer.addView(mHeaderContainer);
-        }
     }
 
     @Override

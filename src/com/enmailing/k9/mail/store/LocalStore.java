@@ -3,6 +3,7 @@ package com.enmailing.k9.mail.store;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -25,6 +26,8 @@ import java.util.UUID;
 import java.util.regex.Pattern;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.james.mime4j.codec.QuotedPrintableOutputStream;
+import org.apache.james.mime4j.util.MimeUtil;
 
 import android.app.Application;
 import android.content.ContentResolver;
@@ -37,9 +40,11 @@ import android.database.sqlite.SQLiteException;
 import android.net.Uri;
 import android.util.Log;
 
+import com.enmailing.EnMailing;
 import com.enmailing.k9.Account;
 import com.enmailing.k9.K9;
 import com.enmailing.k9.Preferences;
+import com.enmailing.k9.R;
 import com.enmailing.k9.Account.MessageFormat;
 import com.enmailing.k9.activity.Search;
 import com.enmailing.k9.controller.MessageRemovalListener;
@@ -50,10 +55,12 @@ import com.enmailing.k9.helper.Utility;
 import com.enmailing.k9.mail.Address;
 import com.enmailing.k9.mail.Body;
 import com.enmailing.k9.mail.BodyPart;
+import com.enmailing.k9.mail.CompositeBody;
 import com.enmailing.k9.mail.FetchProfile;
 import com.enmailing.k9.mail.Flag;
 import com.enmailing.k9.mail.Folder;
 import com.enmailing.k9.mail.Message;
+import com.enmailing.k9.mail.Message.RecipientType;
 import com.enmailing.k9.mail.MessagingException;
 import com.enmailing.k9.mail.Part;
 import com.enmailing.k9.mail.Store;
@@ -64,8 +71,8 @@ import com.enmailing.k9.mail.internet.MimeHeader;
 import com.enmailing.k9.mail.internet.MimeMessage;
 import com.enmailing.k9.mail.internet.MimeMultipart;
 import com.enmailing.k9.mail.internet.MimeUtility;
-import com.enmailing.k9.mail.internet.TextBody;
 import com.enmailing.k9.mail.internet.MimeUtility.ViewableContainer;
+import com.enmailing.k9.mail.internet.TextBody;
 import com.enmailing.k9.mail.store.LockableDatabase.DbCallback;
 import com.enmailing.k9.mail.store.LockableDatabase.WrappedException;
 import com.enmailing.k9.mail.store.StorageManager.StorageProvider;
@@ -73,10 +80,9 @@ import com.enmailing.k9.provider.AttachmentProvider;
 import com.enmailing.k9.provider.EmailProvider;
 import com.enmailing.k9.provider.EmailProvider.MessageColumns;
 import com.enmailing.k9.search.LocalSearch;
-import com.enmailing.k9.search.SqlQueryBuilder;
 import com.enmailing.k9.search.SearchSpecification.Attribute;
 import com.enmailing.k9.search.SearchSpecification.Searchfield;
-import com.enmailing.k9.R;
+import com.enmailing.k9.search.SqlQueryBuilder;
 
 /**
  * <pre>
@@ -90,6 +96,7 @@ public class LocalStore extends Store implements Serializable {
     private static final Message[] EMPTY_MESSAGE_ARRAY = new Message[0];
     private static final String[] EMPTY_STRING_ARRAY = new String[0];
     private static final Flag[] EMPTY_FLAG_ARRAY = new Flag[0];
+    private static final byte[] EMPTY_BYTE_ARRAY = new byte[0];
 
     /*
      * a String containing the columns getMessages expects to work with
@@ -218,7 +225,7 @@ public class LocalStore extends Store implements Serializable {
         }
 
         private void upgradeDatabase(final SQLiteDatabase db) {
-            Log.i(K9.LOG_TAG, String.format("Upgrading database from version %d to version %d",
+            Log.i(K9.LOG_TAG, String.format(Locale.US, "Upgrading database from version %d to version %d",
                                             db.getVersion(), DB_VERSION));
 
             AttachmentProvider.clear(mApplication);
@@ -767,9 +774,11 @@ public class LocalStore extends Store implements Serializable {
             public Long doDbWork(final SQLiteDatabase db) {
                 final File[] files = attachmentDirectory.listFiles();
                 long attachmentLength = 0;
-                for (File file : files) {
-                    if (file.exists()) {
-                        attachmentLength += file.length();
+                if (files != null) {
+                    for (File file : files) {
+                        if (file.exists()) {
+                            attachmentLength += file.length();
+                        }
                     }
                 }
 
@@ -1063,7 +1072,7 @@ public class LocalStore extends Store implements Serializable {
                     return null;
                 }
             });
-        } catch (UnsupportedEncodingException usee) {
+        } catch (UnsupportedEncodingException uee) {
             throw new Error("Aparently UTF-8 has been lost to the annals of history.");
         }
     }
@@ -1838,7 +1847,7 @@ public class LocalStore extends Store implements Serializable {
                                                              + "WHERE id = ?",
                                                              new String[] { Long.toString(localMessage.mId) });
                                         cursor.moveToNext();
-                                        String htmlContent = cursor.getString(0);
+                                        String htmlContent = cursor.getString(0);;
                                         String textContent = cursor.getString(1);
                                         String mimeType = cursor.getString(2);
                                         if (mimeType != null && mimeType.toLowerCase(Locale.US).startsWith("multipart/")) {
@@ -1936,6 +1945,7 @@ public class LocalStore extends Store implements Serializable {
                                             String contentUri = cursor.getString(5);
                                             String contentId = cursor.getString(6);
                                             String contentDisposition = cursor.getString(7);
+                                            String encoding = MimeUtility.getEncodingforType(type);
                                             Body body = null;
 
                                             if (contentDisposition == null) {
@@ -1943,25 +1953,33 @@ public class LocalStore extends Store implements Serializable {
                                             }
 
                                             if (contentUri != null) {
-                                                body = new LocalAttachmentBody(Uri.parse(contentUri), mApplication);
+                                                if (MimeUtil.isMessage(type)) {
+                                                    body = new LocalAttachmentMessageBody(
+                                                            Uri.parse(contentUri),
+                                                            mApplication);
+                                                } else {
+                                                    body = new LocalAttachmentBody(
+                                                            Uri.parse(contentUri),
+                                                            mApplication);
+                                                }
                                             }
 
                                             MimeBodyPart bp = new LocalAttachmentBodyPart(body, id);
-                                            bp.setHeader(MimeHeader.HEADER_CONTENT_TRANSFER_ENCODING, "base64");
+                                            bp.setEncoding(encoding);
                                             if (name != null) {
                                                 bp.setHeader(MimeHeader.HEADER_CONTENT_TYPE,
-                                                             String.format("%s;\n name=\"%s\"",
+                                                             String.format("%s;\r\n name=\"%s\"",
                                                                            type,
                                                                            name));
                                                 bp.setHeader(MimeHeader.HEADER_CONTENT_DISPOSITION,
-                                                             String.format("%s;\n filename=\"%s\";\n size=%d",
+                                                             String.format(Locale.US, "%s;\r\n filename=\"%s\";\r\n size=%d",
                                                                            contentDisposition,
                                                                            name, // TODO: Should use encoded word defined in RFC 2231.
                                                                            size));
                                             } else {
                                                 bp.setHeader(MimeHeader.HEADER_CONTENT_TYPE, type);
                                                 bp.setHeader(MimeHeader.HEADER_CONTENT_DISPOSITION,
-                                                        String.format("%s;\n size=%d",
+                                                        String.format(Locale.US, "%s;\r\n size=%d",
                                                                       contentDisposition,
                                                                       size));
                                             }
@@ -2793,10 +2811,10 @@ public class LocalStore extends Store implements Serializable {
                                  */
                                 String disposition = attachment.getDisposition();
                                 if (disposition != null) {
-                                    String s = MimeUtility.getHeaderParameter(disposition, "size");
-                                    if (s != null) {
+                                    String sizeParam = MimeUtility.getHeaderParameter(disposition, "size");
+                                    if (sizeParam != null) {
                                         try {
-                                            size = Integer.parseInt(s);
+                                            size = Integer.parseInt(sizeParam);
                                         } catch (NumberFormatException e) { /* Ignore */ }
                                     }
                                 }
@@ -2852,7 +2870,13 @@ public class LocalStore extends Store implements Serializable {
                                 contentUri = AttachmentProvider.getAttachmentUri(
                                                  mAccount,
                                                  attachmentId);
-                                attachment.setBody(new LocalAttachmentBody(contentUri, mApplication));
+                                if (MimeUtil.isMessage(attachment.getMimeType())) {
+                                    attachment.setBody(new LocalAttachmentMessageBody(
+                                            contentUri, mApplication));
+                                } else {
+                                    attachment.setBody(new LocalAttachmentBody(
+                                            contentUri, mApplication));
+                                }
                                 ContentValues cv = new ContentValues();
                                 cv.put("content_uri", contentUri != null ? contentUri.toString() : null);
                                 db.update("attachments", cv, "id = ?", new String[]
@@ -3526,6 +3550,7 @@ public class LocalStore extends Store implements Serializable {
                 if (part != null && part.getBody() instanceof LocalStore.LocalTextBody) {
                     text = ((LocalStore.LocalTextBody) part.getBody()).getBodyForDisplay();
                 }
+                
             } else {
                 // We successfully found an HTML part; do the necessary character set decoding.
                 text = MimeUtility.getTextFromPart(part);
@@ -3984,8 +4009,65 @@ public class LocalStore extends Store implements Serializable {
         }
     }
 
-    public static class LocalAttachmentBody implements Body {
-        private static final byte[] EMPTY_BYTE_ARRAY = new byte[0];
+    public abstract static class BinaryAttachmentBody implements Body {
+        protected String mEncoding;
+
+        @Override
+        public abstract InputStream getInputStream() throws MessagingException;
+
+        @Override
+        public void writeTo(OutputStream out) throws IOException, MessagingException {
+            InputStream in = getInputStream();
+            try {
+                boolean closeStream = false;
+                if (MimeUtil.isBase64Encoding(mEncoding)) {
+                    out = new Base64OutputStream(out);
+                    closeStream = true;
+                } else if (MimeUtil.isQuotedPrintableEncoded(mEncoding)){
+                    out = new QuotedPrintableOutputStream(out, false);
+                    closeStream = true;
+                }
+
+                try {
+                    IOUtils.copy(in, out);
+                } finally {
+                    if (closeStream) {
+                        out.close();
+                    }
+                }
+            } finally {
+                in.close();
+            }
+        }
+
+        @Override
+        public void setEncoding(String encoding) throws MessagingException {
+            mEncoding = encoding;
+        }
+
+        public String getEncoding() {
+            return mEncoding;
+        }
+    }
+
+    public static class TempFileBody extends BinaryAttachmentBody {
+        private final File mFile;
+
+        public TempFileBody(String filename) {
+            mFile = new File(filename);
+        }
+
+        @Override
+        public InputStream getInputStream() throws MessagingException {
+            try {
+                return new FileInputStream(mFile);
+            } catch (FileNotFoundException e) {
+                return new ByteArrayInputStream(EMPTY_BYTE_ARRAY);
+            }
+        }
+    }
+
+    public static class LocalAttachmentBody extends BinaryAttachmentBody {
         private Application mApplication;
         private Uri mUri;
 
@@ -4007,19 +4089,95 @@ public class LocalStore extends Store implements Serializable {
             }
         }
 
-        @Override
-        public void writeTo(OutputStream out) throws IOException, MessagingException {
-            InputStream in = getInputStream();
-            Base64OutputStream base64Out = new Base64OutputStream(out);
-            try {
-                IOUtils.copy(in, base64Out);
-            } finally {
-                base64Out.close();
-            }
-        }
-
         public Uri getContentUri() {
             return mUri;
+        }
+    }
+
+    /**
+     * A {@link LocalAttachmentBody} extension containing a message/rfc822 type body
+     *
+     */
+    public static class LocalAttachmentMessageBody extends LocalAttachmentBody implements CompositeBody {
+
+        public LocalAttachmentMessageBody(Uri uri, Application application) {
+            super(uri, application);
+        }
+
+        @Override
+        public void writeTo(OutputStream out) throws IOException, MessagingException {
+            AttachmentMessageBodyUtil.writeTo(this, out);
+        }
+
+        @Override
+        public void setUsing7bitTransport() throws MessagingException {
+            /*
+             * There's nothing to recurse into here, so there's nothing to do.
+             * The enclosing BodyPart already called setEncoding(MimeUtil.ENC_7BIT).  Once
+             * writeTo() is called, the file with the rfc822 body will be opened
+             * for reading and will then be recursed.
+             */
+
+        }
+
+        @Override
+        public void setEncoding(String encoding) throws MessagingException {
+            if (!MimeUtil.ENC_7BIT.equalsIgnoreCase(encoding)
+                    && !MimeUtil.ENC_8BIT.equalsIgnoreCase(encoding)) {
+                throw new MessagingException(
+                        "Incompatible content-transfer-encoding applied to a CompositeBody");
+            }
+            mEncoding = encoding;
+        }
+    }
+
+    public static class TempFileMessageBody extends TempFileBody implements CompositeBody {
+
+        public TempFileMessageBody(String filename) {
+            super(filename);
+        }
+
+        @Override
+        public void writeTo(OutputStream out) throws IOException, MessagingException {
+            AttachmentMessageBodyUtil.writeTo(this, out);
+        }
+
+        @Override
+        public void setUsing7bitTransport() throws MessagingException {
+            // see LocalAttachmentMessageBody.setUsing7bitTransport()
+        }
+
+        @Override
+        public void setEncoding(String encoding) throws MessagingException {
+            if (!MimeUtil.ENC_7BIT.equalsIgnoreCase(encoding)
+                    && !MimeUtil.ENC_8BIT.equalsIgnoreCase(encoding)) {
+                throw new MessagingException(
+                        "Incompatible content-transfer-encoding applied to a CompositeBody");
+            }
+            mEncoding = encoding;
+        }
+    }
+
+    public static class AttachmentMessageBodyUtil {
+        public static void writeTo(BinaryAttachmentBody body, OutputStream out) throws IOException,
+                MessagingException {
+            InputStream in = body.getInputStream();
+            try {
+                if (MimeUtil.ENC_7BIT.equalsIgnoreCase(body.getEncoding())) {
+                    /*
+                     * If we knew the message was already 7bit clean, then it
+                     * could be sent along without processing. But since we
+                     * don't know, we recursively parse it.
+                     */
+                    MimeMessage message = new MimeMessage(in, true);
+                    message.setUsing7bitTransport();
+                    message.writeTo(out);
+                } else {
+                    IOUtils.copy(in, out);
+                }
+            } finally {
+                in.close();
+            }
         }
     }
 

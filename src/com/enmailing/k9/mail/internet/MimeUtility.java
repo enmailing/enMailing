@@ -14,6 +14,7 @@ import com.enmailing.k9.R;
 import org.apache.commons.io.IOUtils;
 import org.apache.james.mime4j.codec.Base64InputStream;
 import org.apache.james.mime4j.codec.QuotedPrintableInputStream;
+import org.apache.james.mime4j.util.MimeUtil;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -1040,9 +1041,9 @@ public class MimeUtility {
             if ((part != null) && (part.getBody() != null)) {
                 final Body body = part.getBody();
                 if (body instanceof TextBody) {
+                	//Log.e(EnMailing.LOG_TAG, "got TextBody: "+((TextBody)body).getText());
                     return ((TextBody)body).getText();
                 }
-
                 final String mimeType = part.getMimeType();
                 if ((mimeType != null) && MimeUtility.mimeTypeMatches(mimeType, "text/*")) {
                     /*
@@ -1059,7 +1060,7 @@ public class MimeUtility {
                             in.read(buf, 0, buf.length);
                             String str = new String(buf, "US-ASCII");
 
-                            if (str.length() == 0) {
+                            if (str.isEmpty()) {
                                 return "";
                             }
                             Pattern p = Pattern.compile("<meta http-equiv=\"?Content-Type\"? content=\"text/html; charset=(.+?)\">", Pattern.CASE_INSENSITIVE);
@@ -1156,23 +1157,31 @@ public class MimeUtility {
 
     /**
      * Removes any content transfer encoding from the stream and returns a Body.
+     * @throws MessagingException
      */
-    public static Body decodeBody(InputStream in, String contentTransferEncoding)
-    throws IOException {
+    public static Body decodeBody(InputStream in,
+            String contentTransferEncoding, String contentType)
+            throws IOException, MessagingException {
         /*
          * We'll remove any transfer encoding by wrapping the stream.
          */
         if (contentTransferEncoding != null) {
             contentTransferEncoding =
                 MimeUtility.getHeaderParameter(contentTransferEncoding, null);
-            if ("quoted-printable".equalsIgnoreCase(contentTransferEncoding)) {
+            if (MimeUtil.ENC_QUOTED_PRINTABLE.equalsIgnoreCase(contentTransferEncoding)) {
                 in = new QuotedPrintableInputStream(in);
-            } else if ("base64".equalsIgnoreCase(contentTransferEncoding)) {
+            } else if (MimeUtil.ENC_BASE64.equalsIgnoreCase(contentTransferEncoding)) {
                 in = new Base64InputStream(in);
             }
         }
 
-        BinaryTempFileBody tempBody = new BinaryTempFileBody();
+        BinaryTempFileBody tempBody;
+        if (MimeUtil.isMessage(contentType)) {
+            tempBody = new BinaryTempFileMessageBody();
+        } else {
+            tempBody = new BinaryTempFileBody();
+        }
+        tempBody.setEncoding(contentTransferEncoding);
         OutputStream out = tempBody.getOutputStream();
         try {
             IOUtils.copy(in, out);
@@ -1724,7 +1733,7 @@ public class MimeUtility {
             text.append(context.getString(R.string.message_compose_quote_header_from));
             text.append(' ');
             text.append(Address.toString(from));
-            text.append("\n");
+            text.append("\r\n");
         }
 
         // To: <recipients>
@@ -1733,7 +1742,7 @@ public class MimeUtility {
             text.append(context.getString(R.string.message_compose_quote_header_to));
             text.append(' ');
             text.append(Address.toString(to));
-            text.append("\n");
+            text.append("\r\n");
         }
 
         // Cc: <recipients>
@@ -1742,7 +1751,7 @@ public class MimeUtility {
             text.append(context.getString(R.string.message_compose_quote_header_cc));
             text.append(' ');
             text.append(Address.toString(cc));
-            text.append("\n");
+            text.append("\r\n");
         }
 
         // Date: <date>
@@ -1751,7 +1760,7 @@ public class MimeUtility {
             text.append(context.getString(R.string.message_compose_quote_header_send_date));
             text.append(' ');
             text.append(date.toString());
-            text.append("\n");
+            text.append("\r\n");
         }
 
         // Subject: <subject>
@@ -1763,7 +1772,7 @@ public class MimeUtility {
         } else {
             text.append(subject);
         }
-        text.append("\n\n");
+        text.append("\r\n\r\n");
     }
 
     /**
@@ -1911,7 +1920,7 @@ public class MimeUtility {
         if (prependDivider) {
             String filename = getPartName(part);
 
-            text.append("\n\n");
+            text.append("\r\n\r\n");
             int len = filename.length();
             if (len > 0) {
                 if (len > TEXT_DIVIDER_LENGTH - FILENAME_PREFIX_LENGTH - FILENAME_SUFFIX_LENGTH) {
@@ -1926,7 +1935,7 @@ public class MimeUtility {
             } else {
                 text.append(TEXT_DIVIDER);
             }
-            text.append("\n\n");
+            text.append("\r\n\r\n");
         }
     }
 
@@ -2159,6 +2168,38 @@ public class MimeUtility {
 
         // Some messages contain wrong MIME types. See if we know better.
         return canonicalizeMimeType(mimeType);
+    }
+
+
+    /**
+     * Get a default content-transfer-encoding for use with a given content-type
+     * when adding an unencoded attachment. It's possible that 8bit encodings
+     * may later be converted to 7bit for 7bit transport.
+     * <ul>
+     * <li>null: base64
+     * <li>message/rfc822: 8bit
+     * <li>message/*: 7bit
+     * <li>multipart/signed: 7bit
+     * <li>multipart/*: 8bit
+     * <li>*&#47;*: base64
+     * </ul>
+     *
+     * @param type
+     *            A String representing a MIME content-type
+     * @return A String representing a MIME content-transfer-encoding
+     */
+    public static String getEncodingforType(String type) {
+        if (type == null) {
+            return (MimeUtil.ENC_BASE64);
+        } else if (MimeUtil.isMessage(type)) {
+            return (MimeUtil.ENC_8BIT);
+        } else if ("multipart/signed".equalsIgnoreCase(type) || type.toLowerCase(Locale.US).startsWith("message/")) {
+            return (MimeUtil.ENC_7BIT);
+        } else if (type.toLowerCase(Locale.US).startsWith("multipart/")) {
+            return (MimeUtil.ENC_8BIT);
+        } else {
+            return (MimeUtil.ENC_BASE64);
+        }
     }
 
     private static Message getMessageFromPart(Part part) {
@@ -3327,7 +3368,7 @@ public class MimeUtility {
 
     public static void setCharset(String charset, Part part) throws MessagingException {
         part.setHeader(MimeHeader.HEADER_CONTENT_TYPE,
-                       part.getMimeType() + ";\n charset=" + getExternalCharset(charset));
+                       part.getMimeType() + ";\r\n charset=" + getExternalCharset(charset));
     }
 
     public static String getExternalCharset(String charset) {
@@ -3376,7 +3417,7 @@ public class MimeUtility {
         if (part.isMimeType("text/plain")) {
             String bodyText = getTextFromPart(part);
             if (bodyText != null) {
-                text = fixDraftTextBody(bodyText);
+                text = bodyText;
                 html = HtmlConverter.textToHtml(text);
             }
         } else if (part.isMimeType("multipart/alternative") &&
@@ -3386,32 +3427,15 @@ public class MimeUtility {
                 BodyPart bodyPart = multipart.getBodyPart(i);
                 String bodyText = getTextFromPart(bodyPart);
                 if (bodyText != null) {
-                    if (text.length() == 0 && bodyPart.isMimeType("text/plain")) {
-                        text = fixDraftTextBody(bodyText);
-                    } else if (html.length() == 0 && bodyPart.isMimeType("text/html")) {
-                        html = fixDraftTextBody(bodyText);
+                    if (text.isEmpty() && bodyPart.isMimeType("text/plain")) {
+                        text = bodyText;
+                    } else if (html.isEmpty() && bodyPart.isMimeType("text/html")) {
+                        html = bodyText;
                     }
                 }
             }
         }
 
         return new ViewableContainer(text, html, attachments);
-    }
-
-    /**
-     * Fix line endings of text bodies in draft messages.
-     *
-     * <p>
-     * We create drafts with LF line endings. The values in the identity header are based on that.
-     * So we replace CRLF with LF when loading messages (from the server).
-     * </p>
-     *
-     * @param text
-     *         The body text with CRLF line endings
-     *
-     * @return The text with LF line endings
-     */
-    private static String fixDraftTextBody(String text) {
-        return text.replace("\r\n", "\n");
     }
 }

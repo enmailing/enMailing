@@ -12,6 +12,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.util.Log;
 
+import com.enmailing.k9.mail.Store;
 import com.enmailing.k9.preferences.Editor;
 import com.enmailing.k9.preferences.Storage;
 
@@ -124,6 +125,9 @@ public class Preferences {
             accountsInOrder.remove(account);
         }
 
+        Store.removeAccount(account);
+
+        account.deleteCertificates();
         account.delete(this);
 
         if (newAccount == account) {

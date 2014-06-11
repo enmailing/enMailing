@@ -56,6 +56,30 @@
         android:icon="?attr/iconActionDelete"
         android:showAsAction="always"
         android:title="@string/delete_action"/>
+    <!-- MessageView -->
+    <item
+        android:id="@+id/archive"
+        android:icon="?attr/iconActionArchive"
+        android:showAsAction="ifRoom"
+        android:title="@string/archive_action"/>
+    <!-- MessageView -->
+    <item
+        android:id="@+id/spam"
+        android:icon="?attr/iconActionSpam"
+        android:showAsAction="ifRoom"
+        android:title="@string/spam_action"/>
+    <!-- MessageView -->
+    <item
+        android:id="@+id/move"
+        android:icon="?attr/iconActionMove"
+        android:showAsAction="ifRoom"
+        android:title="@string/move_action"/>
+    <!-- MessageView -->
+    <item
+        android:id="@+id/copy"
+        android:icon="?attr/iconActionCopy"
+        android:showAsAction="ifRoom"
+        android:title="@string/copy_action"/>
 
     <!-- MessageView -->
     <item
@@ -87,28 +111,22 @@
         android:title="@string/refile_action">
         <menu>
             <item
-                android:id="@+id/archive"
-                android:icon="?attr/iconActionArchive"
-                android:showAsAction="ifRoom"
+                android:id="@+id/refile_archive"
                 android:title="@string/archive_action"/>
 
             <!-- MessageView -->
             <item
-                android:id="@+id/spam"
-                android:icon="?attr/iconActionSpam"
-                android:showAsAction="ifRoom"
+                android:id="@+id/refile_spam"
                 android:title="@string/spam_action"/>
 
             <!-- MessageView -->
             <item
-                android:id="@+id/move"
-                android:icon="?attr/iconActionMoveOrCopy"
-                android:showAsAction="ifRoom"
+                android:id="@+id/refile_move"
                 android:title="@string/move_action"/>
 
             <!-- MessageView -->
             <item
-                android:id="@+id/copy"
+                android:id="@+id/refile_copy"
                 android:title="@string/copy_action"/>
         </menu>
     </item>
@@ -204,7 +222,7 @@
         android:id="@+id/toggle_message_view_theme"
         android:showAsAction="never"
         android:title="@string/message_view_theme_action_dark"/>
-    <item 
+    <item
         android:id="@+id/show_folder_list"
         android:showAsAction="never"
         android:title="@string/folders_title" />

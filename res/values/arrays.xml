@@ -54,6 +54,9 @@
         <item>@string/account_setup_options_mail_display_count_250</item>
         <item>@string/account_setup_options_mail_display_count_500</item>
         <item>@string/account_setup_options_mail_display_count_1000</item>
+        <item>@string/account_setup_options_mail_display_count_2500</item>
+        <item>@string/account_setup_options_mail_display_count_5000</item>
+        <item>@string/account_setup_options_mail_display_count_10000</item>
         <item>@string/account_setup_options_mail_display_count_all</item>
     </string-array>
 
@@ -65,6 +68,9 @@
         <item>250</item>
         <item>500</item>
         <item>1000</item>
+        <item>2500</item>
+        <item>5000</item>
+        <item>10000</item>
         <item>0</item>
     </string-array>
 
@@ -326,7 +332,7 @@
         <item>Kirundi</item>
         <item>Kiswahili</item>
         <item>Latviešu</item>
-        <item>Lietuviškai</item>
+        <item>Lietuvių</item>
         <item>Magyar</item>
         <item>Malti</item>
         <item>Nederlands</item>
@@ -491,6 +497,7 @@
         <item>ja</item>
         <item>ko</item>
         <item>sk</item>
+        <item>lt</item>
     </string-array>
 
     <string-array name="settings_theme_entries">
@@ -552,26 +559,6 @@
         <item>22</item>
     </string-array>
 
-    <string-array name="font_entries_webview">
-        <item>@string/font_size_webview_smaller</item>
-        <item>@string/font_size_webview_small</item>
-        <item>@string/font_size_webview_normal</item>
-        <item>@string/font_size_webview_large</item>
-        <item>@string/font_size_webview_larger</item>
-    </string-array>
-
-    <!--
-        Be sure to also change FontSizes.getMessageViewContentAsInt() and
-        FontSizes.setMessageViewContent() if you change this.
-    -->
-    <string-array name="font_values_webview" translatable="false">
-        <item>1</item>
-        <item>2</item>
-        <item>3</item>
-        <item>4</item>
-        <item>5</item>
-    </string-array>
-
     <string-array name="idle_refresh_period_entries">
         <item>@string/idle_refresh_period_1min</item>
         <item>@string/idle_refresh_period_2min</item>
@@ -625,16 +612,6 @@
         <item>8</item>
         <item>9</item>
         <item>10</item>
-    </string-array>
-
-    <string-array name="account_settings_crypto_app_entries">
-        <item>@string/account_settings_crypto_app_none</item>
-        <item>APG</item>
-    </string-array>
-
-    <string-array name="account_settings_crypto_app_values" translatable="false">
-        <item></item>
-        <item>apg</item>
     </string-array>
 
     <string-array name="settings_preview_lines_values" translatable="false">

@@ -30,6 +30,7 @@ import android.app.PendingIntent;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageInfo;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
@@ -42,20 +43,21 @@ import android.text.TextUtils;
 import android.text.style.TextAppearanceSpan;
 import android.util.Log;
 
-import com.enmailing.EnMailing;
 import com.enmailing.k9.Account;
 import com.enmailing.k9.AccountStats;
 import com.enmailing.k9.K9;
+import com.enmailing.k9.K9.NotificationHideSubject;
+import com.enmailing.k9.K9.Intents;
+import com.enmailing.k9.K9.NotificationQuickDelete;
 import com.enmailing.k9.NotificationSetting;
 import com.enmailing.k9.Preferences;
-import com.enmailing.k9.K9.Intents;
-import com.enmailing.k9.K9.NotificationHideSubject;
-import com.enmailing.k9.K9.NotificationQuickDelete;
+import com.enmailing.k9.R;
 import com.enmailing.k9.activity.Accounts;
 import com.enmailing.k9.activity.FolderList;
 import com.enmailing.k9.activity.MessageList;
 import com.enmailing.k9.activity.MessageReference;
 import com.enmailing.k9.activity.NotificationDeleteConfirmation;
+import com.enmailing.k9.activity.setup.AccountSetupCheckSettings.CheckDirection;
 import com.enmailing.k9.activity.setup.AccountSetupIncoming;
 import com.enmailing.k9.activity.setup.AccountSetupOutgoing;
 import com.enmailing.k9.cache.EmailProviderCache;
@@ -64,29 +66,30 @@ import com.enmailing.k9.helper.NotificationBuilder;
 import com.enmailing.k9.helper.power.TracingPowerManager;
 import com.enmailing.k9.helper.power.TracingPowerManager.TracingWakeLock;
 import com.enmailing.k9.mail.Address;
-import com.enmailing.k9.mail.CertificateValidationException;
 import com.enmailing.k9.mail.FetchProfile;
 import com.enmailing.k9.mail.Flag;
 import com.enmailing.k9.mail.Folder;
+import com.enmailing.k9.mail.Folder.FolderType;
+
 import com.enmailing.k9.mail.Message;
+import com.enmailing.k9.mail.Message.RecipientType;
+import com.enmailing.k9.mail.CertificateValidationException;
 import com.enmailing.k9.mail.MessagingException;
 import com.enmailing.k9.mail.Part;
 import com.enmailing.k9.mail.PushReceiver;
 import com.enmailing.k9.mail.Pusher;
 import com.enmailing.k9.mail.Store;
 import com.enmailing.k9.mail.Transport;
-import com.enmailing.k9.mail.Folder.FolderType;
-import com.enmailing.k9.mail.Message.RecipientType;
 import com.enmailing.k9.mail.internet.MimeMessage;
 import com.enmailing.k9.mail.internet.MimeUtility;
 import com.enmailing.k9.mail.internet.TextBody;
 import com.enmailing.k9.mail.store.LocalStore;
-import com.enmailing.k9.mail.store.Pop3Store;
-import com.enmailing.k9.mail.store.UnavailableAccountException;
-import com.enmailing.k9.mail.store.UnavailableStorageException;
 import com.enmailing.k9.mail.store.LocalStore.LocalFolder;
 import com.enmailing.k9.mail.store.LocalStore.LocalMessage;
 import com.enmailing.k9.mail.store.LocalStore.PendingCommand;
+import com.enmailing.k9.mail.store.Pop3Store;
+import com.enmailing.k9.mail.store.UnavailableAccountException;
+import com.enmailing.k9.mail.store.UnavailableStorageException;
 import com.enmailing.k9.provider.EmailProvider;
 import com.enmailing.k9.provider.EmailProvider.StatsColumns;
 import com.enmailing.k9.search.ConditionsTreeNode;
@@ -94,11 +97,8 @@ import com.enmailing.k9.search.LocalSearch;
 import com.enmailing.k9.search.SearchAccount;
 import com.enmailing.k9.search.SearchSpecification;
 import com.enmailing.k9.search.SqlQueryBuilder;
-import com.enmailing.k9.search.SearchSpecification.Attribute;
-import com.enmailing.k9.search.SearchSpecification.Searchfield;
 import com.enmailing.k9.service.NotificationActionService;
-import com.enmailing.k9.R;
-
+import com.enmailing.EnMailing;
 
 
 /**
@@ -621,11 +621,11 @@ public class MessagingController implements Runnable {
                     List <? extends Folder > remoteFolders = store.getPersonalNamespaces(false);
 
                     LocalStore localStore = account.getLocalStore();
-                    HashSet<String> remoteFolderNames = new HashSet<String>();
+                    Set<String> remoteFolderNames = new HashSet<String>();
                     List<LocalFolder> foldersToCreate = new LinkedList<LocalFolder>();
 
                     localFolders = localStore.getPersonalNamespaces(false);
-                    HashSet<String> localFolderNames = new HashSet<String>();
+                    Set<String> localFolderNames = new HashSet<String>();
                     for (Folder localFolder : localFolders) {
                         localFolderNames.add(localFolder.getName());
                     }
@@ -698,7 +698,7 @@ public class MessagingController implements Runnable {
 
     public void searchLocalMessagesSynchronous(final LocalSearch search, final MessagingListener listener) {
         final AccountStats stats = new AccountStats();
-        final HashSet<String> uuidSet = new HashSet<String>(Arrays.asList(search.getAccountUuids()));
+        final Set<String> uuidSet = new HashSet<String>(Arrays.asList(search.getAccountUuids()));
         Account[] accounts = Preferences.getPreferences(mApplication.getApplicationContext()).getAccounts();
         boolean allAccounts = uuidSet.contains(SearchSpecification.ALL_ACCOUNTS);
 
@@ -2349,14 +2349,10 @@ public class MessagingController implements Runnable {
 
             /*
              * This next part is used to bring the local UIDs of the local destination folder
-             * upto speed with the remote UIDs of remote destionation folder.
+             * upto speed with the remote UIDs of remote destination folder.
              */
             if (!localUidMap.isEmpty() && remoteUidMap != null && !remoteUidMap.isEmpty()) {
-                Set<Map.Entry<String, String>> remoteSrcEntries = remoteUidMap.entrySet();
-                Iterator<Map.Entry<String, String>> remoteSrcEntriesIterator = remoteSrcEntries.iterator();
-
-                while (remoteSrcEntriesIterator.hasNext()) {
-                    Map.Entry<String, String> entry = remoteSrcEntriesIterator.next();
+                for (Map.Entry<String, String> entry : remoteUidMap.entrySet()) {
                     String remoteSrcUid = entry.getKey();
                     String localDestUid = localUidMap.get(remoteSrcUid);
                     String newUid = entry.getValue();
@@ -2636,7 +2632,7 @@ public class MessagingController implements Runnable {
         }
     }
 
-    private void notifyUserIfCertificateProblem(Context context, Exception e,
+    void notifyUserIfCertificateProblem(Context context, Exception e,
             Account account, boolean incoming) {
         if (!(e instanceof CertificateValidationException)) {
             return;
@@ -2656,7 +2652,7 @@ public class MessagingController implements Runnable {
         final PendingIntent pi = PendingIntent.getActivity(context,
                 account.getAccountNumber(), i, PendingIntent.FLAG_UPDATE_CURRENT);
         final String title = context.getString(
-                R.string.notification_certificate_error_title, account.getName());
+                R.string.notification_certificate_error_title, account.getDescription());
 
         final NotificationCompat.Builder builder = new NotificationBuilder(context);
         builder.setSmallIcon(R.drawable.ic_notify_new_mail);
@@ -2677,14 +2673,13 @@ public class MessagingController implements Runnable {
     }
 
     public void clearCertificateErrorNotifications(Context context,
-            final Account account, boolean incoming, boolean outgoing) {
+            final Account account, CheckDirection direction) {
         final NotificationManager nm = (NotificationManager)
                 context.getSystemService(Context.NOTIFICATION_SERVICE);
 
-        if (incoming) {
+        if (direction.equals(CheckDirection.INCOMING)) {
             nm.cancel(null, K9.CERTIFICATE_EXCEPTION_NOTIFICATION_INCOMING + account.getAccountNumber());
-        }
-        if (outgoing) {
+        } else {
             nm.cancel(null, K9.CERTIFICATE_EXCEPTION_NOTIFICATION_OUTGOING + account.getAccountNumber());
         }
     }
@@ -2693,9 +2688,6 @@ public class MessagingController implements Runnable {
     static long uidfill = 0;
     static AtomicBoolean loopCatch = new AtomicBoolean();
     public void addErrorMessage(Account account, String subject, Throwable t) {
-        if (!loopCatch.compareAndSet(false, true)) {
-            return;
-        }
         try {
             if (t == null) {
                 return;
@@ -2703,6 +2695,16 @@ public class MessagingController implements Runnable {
 
             CharArrayWriter baos = new CharArrayWriter(t.getStackTrace().length * 10);
             PrintWriter ps = new PrintWriter(baos);
+            try {
+                PackageInfo packageInfo = mApplication.getPackageManager().getPackageInfo(
+                        mApplication.getPackageName(), 0);
+                ps.format("K9-Mail version: %s\r\n", packageInfo.versionName);
+            } catch (Exception e) {
+                // ignore
+            }
+            ps.format("Device make: %s\r\n", Build.MANUFACTURER);
+            ps.format("Device model: %s\r\n", Build.MODEL);
+            ps.format("Android version: %s\r\n\r\n", Build.VERSION.RELEASE);
             t.printStackTrace(ps);
             ps.close();
 
@@ -2713,13 +2715,11 @@ public class MessagingController implements Runnable {
             addErrorMessage(account, subject, baos.toString());
         } catch (Throwable it) {
             Log.e(K9.LOG_TAG, "Could not save error message to " + account.getErrorFolderName(), it);
-        } finally {
-            loopCatch.set(false);
         }
     }
 
     public void addErrorMessage(Account account, String subject, String body) {
-        if (!K9.ENABLE_ERROR_FOLDER) {
+        if (!K9.DEBUG) {
             return;
         }
         if (!loopCatch.compareAndSet(false, true)) {
@@ -3356,8 +3356,13 @@ public class MessagingController implements Runnable {
         builder.setSmallIcon(R.drawable.ic_notify_check_mail);
         builder.setWhen(System.currentTimeMillis());
         builder.setOngoing(true);
+
+        String accountDescription = account.getDescription();
+        String accountName = (TextUtils.isEmpty(accountDescription)) ?
+                account.getEmail() : accountDescription;
+
         builder.setTicker(mApplication.getString(R.string.notification_bg_send_ticker,
-                account.getDescription()));
+                accountName));
 
         builder.setContentTitle(mApplication.getString(R.string.notification_bg_send_title));
         builder.setContentText(account.getDescription());
@@ -3598,6 +3603,7 @@ public class MessagingController implements Runnable {
                         }
 
                         notifyUserIfCertificateProblem(mApplication, e, account, false);
+                        addErrorMessage(account, "Failed to send message", e);
                         message.setFlag(Flag.X_SEND_FAILED, true);
                         Log.e(K9.LOG_TAG, "Failed to send message", e);
                         for (MessagingListener l : getListeners()) {
@@ -3610,6 +3616,7 @@ public class MessagingController implements Runnable {
                     for (MessagingListener l : getListeners()) {
                         l.synchronizeMailboxFailed(account, localFolder.getName(), getRootCauseMessage(e));
                     }
+                    addErrorMessage(account, "Failed to fetch message for sending", e);
                     lastFailure = e;
                 }
             }

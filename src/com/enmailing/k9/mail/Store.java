@@ -7,14 +7,16 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import android.app.Application;
 import android.content.Context;
+import android.util.Log;
 
 import com.enmailing.k9.Account;
+import com.enmailing.k9.K9;
 import com.enmailing.k9.mail.store.ImapStore;
 import com.enmailing.k9.mail.store.LocalStore;
 import com.enmailing.k9.mail.store.Pop3Store;
+import com.enmailing.k9.mail.store.StorageManager.StorageProvider;
 import com.enmailing.k9.mail.store.UnavailableStorageException;
 import com.enmailing.k9.mail.store.WebDavStore;
-import com.enmailing.k9.mail.store.StorageManager.StorageProvider;
 
 /**
  * Store is the access point for an email message store. It's location can be
@@ -109,6 +111,48 @@ public abstract class Store {
 
             return (LocalStore) store;
         }
+    }
+
+    public static void removeAccount(Account account) {
+        try {
+            removeRemoteInstance(account);
+        } catch (Exception e) {
+            Log.e(K9.LOG_TAG, "Failed to reset remote store for account " + account.getUuid(), e);
+        }
+
+        try {
+            removeLocalInstance(account);
+        } catch (Exception e) {
+            Log.e(K9.LOG_TAG, "Failed to reset local store for account " + account.getUuid(), e);
+        }
+    }
+
+    /**
+     * Release reference to a local mail store instance.
+     *
+     * @param account
+     *         {@link Account} instance that is used to get the local mail store instance.
+     */
+    private static void removeLocalInstance(Account account) {
+        String accountUuid = account.getUuid();
+        sLocalStores.remove(accountUuid);
+    }
+
+    /**
+     * Release reference to a remote mail store instance.
+     *
+     * @param account
+     *         {@link Account} instance that is used to get the remote mail store instance.
+     */
+    private synchronized static void removeRemoteInstance(Account account) {
+        String uri = account.getStoreUri();
+
+        if (uri.startsWith("local")) {
+            throw new RuntimeException("Asked to get non-local Store object but given " +
+                    "LocalStore URI");
+        }
+
+        sStores.remove(uri);
     }
 
     /**
@@ -208,6 +252,4 @@ public abstract class Store {
     public Account getAccount() {
         return mAccount;
     }
-
-
 }

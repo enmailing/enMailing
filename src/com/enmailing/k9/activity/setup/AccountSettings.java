@@ -2,10 +2,14 @@
 package com.enmailing.k9.activity.setup;
 
 import android.app.Dialog;
+
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+
+import org.openintents.openpgp.util.OpenPgpListPreference;
+import org.openintents.openpgp.util.OpenPgpUtils;
 
 import android.content.Context;
 import android.content.Intent;
@@ -171,7 +175,7 @@ public class AccountSettings extends K9PreferenceActivity {
     private ListPreference mIdleRefreshPeriod;
     private ListPreference mMaxPushFolders;
     private boolean mHasCrypto = false;
-    private ListPreference mCryptoApp;
+    private OpenPgpListPreference mCryptoApp;
     private CheckBoxPreference mCryptoAutoSignature;
     private CheckBoxPreference mCryptoAutoEncrypt;
 
@@ -510,7 +514,6 @@ public class AccountSettings extends K9PreferenceActivity {
                 }
             }
         );
-        updateRemoteSearchLimit(mRemoteSearchNumResults.getValue());
         //mRemoteSearchFullText = (CheckBoxPreference) findPreference(PREFERENCE_REMOTE_SEARCH_FULL_TEXT);
 
         mPushPollOnConnect = (CheckBoxPreference) findPreference(PREFERENCE_PUSH_POLL_ON_CONNECT);
@@ -520,7 +523,9 @@ public class AccountSettings extends K9PreferenceActivity {
             mPushPollOnConnect.setChecked(mAccount.isPushPollOnConnect());
 
             mCloudSearchEnabled.setChecked(mAccount.allowRemoteSearch());
-            mRemoteSearchNumResults.setValue(Integer.toString(mAccount.getRemoteSearchNumResults()));
+            String searchNumResults = Integer.toString(mAccount.getRemoteSearchNumResults());
+            mRemoteSearchNumResults.setValue(searchNumResults);
+            updateRemoteSearchLimit(searchNumResults);
             //mRemoteSearchFullText.setChecked(mAccount.isRemoteSearchFullText());
 
             mIdleRefreshPeriod.setValue(String.valueOf(mAccount.getIdleRefreshMinutes()));
@@ -688,16 +693,21 @@ public class AccountSettings extends K9PreferenceActivity {
             }
         });
 
-        mHasCrypto = new Apg().isAvailable(this);
+        mHasCrypto = (new Apg().isAvailable(this) || OpenPgpUtils.isAvailable(this));
         if (mHasCrypto) {
-            mCryptoApp = (ListPreference) findPreference(PREFERENCE_CRYPTO_APP);
+            mCryptoApp = (OpenPgpListPreference) findPreference(PREFERENCE_CRYPTO_APP);
+
+            // add "apg"
+            if (new Apg().isAvailable(this)) {
+                mCryptoApp.addLegacyProvider(0, "apg", "APG", null);
+            }
+            
             mCryptoApp.setValue(String.valueOf(mAccount.getCryptoApp()));
             mCryptoApp.setSummary(mCryptoApp.getEntry());
             mCryptoApp.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
                 public boolean onPreferenceChange(Preference preference, Object newValue) {
                     String value = newValue.toString();
-                    int index = mCryptoApp.findIndexOfValue(value);
-                    mCryptoApp.setSummary(mCryptoApp.getEntries()[index]);
+                    mCryptoApp.setSummary(mCryptoApp.getEntryByValue(value));
                     mCryptoApp.setValue(value);
                     handleCryptoAppDependencies();
                     if (Apg.NAME.equals(value)) {
@@ -742,12 +752,12 @@ public class AccountSettings extends K9PreferenceActivity {
     }
 
     private void handleCryptoAppDependencies() {
-        if ("".equals(mCryptoApp.getValue())) {
-            mCryptoAutoSignature.setEnabled(false);
-            mCryptoAutoEncrypt.setEnabled(false);
-        } else {
+        if ("apg".equals(mCryptoApp.getValue())) {
             mCryptoAutoSignature.setEnabled(true);
             mCryptoAutoEncrypt.setEnabled(true);
+        } else {
+            mCryptoAutoSignature.setEnabled(false);
+            mCryptoAutoEncrypt.setEnabled(false);
         }
     }
 

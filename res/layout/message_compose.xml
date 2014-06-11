@@ -271,7 +271,8 @@
 
             <!-- We have to use "wrap_content" (not "0dip") for "layout_height", otherwise the
                  EditText won't properly grow in height while the user is typing the message -->
-            <EditText
+            <view
+                class="com.enmailing.k9.activity.MessageCompose$EolConvertingEditText"
                 android:id="@+id/message_content"
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
@@ -283,15 +284,13 @@
                 android:minLines="3"
                 android:textAppearance="?android:attr/textAppearanceMedium" />
 
-            <EditText
+            <view
+                class="com.enmailing.k9.activity.MessageCompose$EolConvertingEditText"
                 android:id="@+id/upper_signature"
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
                 android:gravity="top"
-                android:editable="false"
                 android:minLines="0"
-                android:autoText="true"
-                android:capitalize="sentences"
                 android:hint="@string/message_compose_signature_hint"
                 android:inputType="textMultiLine|textAutoCorrect|textCapSentences"
                 android:textAppearance="?android:attr/textAppearanceMedium" />
@@ -299,7 +298,7 @@
             <Button
                 android:id="@+id/quoted_text_show"
                 android:text="@string/message_compose_show_quoted_text_action"
-                android:textSize="16dip"
+                android:textSize="16sp"
                 android:padding="0dip"
                 android:layout_gravity="right"
                 android:layout_height="wrap_content"
@@ -311,14 +310,13 @@
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content">
 
-                <EditText
+                <view
+                    class="com.enmailing.k9.activity.MessageCompose$EolConvertingEditText"
                     android:id="@+id/quoted_text"
                     android:layout_width="fill_parent"
                     android:layout_height="wrap_content"
                     android:gravity="top"
                     android:minLines="3"
-                    android:autoText="true"
-                    android:capitalize="sentences"
                     android:inputType="textMultiLine|textAutoCorrect|textCapSentences"
                     android:textAppearance="?android:attr/textAppearanceMedium" />
 
@@ -353,15 +351,13 @@
 
             </RelativeLayout>
 
-            <EditText
+            <view
+                class="com.enmailing.k9.activity.MessageCompose$EolConvertingEditText"
                 android:id="@+id/lower_signature"
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
                 android:gravity="top"
-                android:editable="false"
                 android:minLines="0"
-                android:autoText="true"
-                android:capitalize="sentences"
                 android:hint="@string/message_compose_signature_hint"
                 android:inputType="textMultiLine|textAutoCorrect|textCapSentences"
                 android:textAppearance="?android:attr/textAppearanceMedium" />

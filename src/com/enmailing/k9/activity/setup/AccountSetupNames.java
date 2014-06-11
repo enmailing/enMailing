@@ -13,6 +13,7 @@ import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.EditText;
 
+import com.enmailing.EnMailing;
 import com.enmailing.k9.*;
 import com.enmailing.k9.activity.Accounts;
 import com.enmailing.k9.activity.K9Activity;
@@ -91,7 +92,11 @@ public class AccountSetupNames extends K9Activity implements OnClickListener {
         mAccount.setName(mName.getText().toString());
         mAccount.save(Preferences.getPreferences(this));
         //Accounts.listAccounts(this);
-        AccountSetupEnMailing.actionSetEnMailing(this);
+        if (EnMailing.getAuthKey().isEmpty()) {
+        	AccountSetupEnMailing.actionSetEnMailing(this);
+        } else {
+        	Accounts.listAccounts(this);
+        }
         finish();
     }
 
